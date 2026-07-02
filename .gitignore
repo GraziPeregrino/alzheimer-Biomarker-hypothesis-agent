@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ipynb_checkpoints/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Agent dataset cache / rehydration artifacts (regenerated at runtime)
+.variant_cache/
+*.parquet
+*.pkl
+
+# Secrets & credentials — never commit these
+.env
+*.key
+kaggle.json
+service-account*.json
+*_credentials.json
+
+# OS cruft
+.DS_Store
+Thumbs.db

@@ -1,0 +1,12 @@
+    # Core analysis stack
+numpy>=1.26
+pandas>=2.0
+scipy>=1.11
+matplotlib>=3.7
+
+# Fast on-disk dataset cache (agent store rehydration); pickle fallback if absent
+pyarrow>=14.0
+
+# Agent layer (needed only to run the Gemini/ADK agent, not the deterministic core)
+google-adk>=1.0
+google-genai>=1.0
