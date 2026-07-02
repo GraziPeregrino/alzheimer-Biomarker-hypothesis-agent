@@ -381,9 +381,36 @@ class HypothesisAgentCore:
 # --------------------------------------------------------------------------- #
 try:
     from google.adk.agents import Agent  # type: ignore
+    from google.adk.models.google_llm import Gemini  # type: ignore
+    from google.adk.models.llm_response import LlmResponse  # type: ignore
+    from google.genai import errors as _genai_errors  # type: ignore
+    from google.genai import types as _genai_types  # type: ignore
+
+    class FriendlyGemini(Gemini):
+        """Gemini, but quota/rate-limit and other API errors are shown as a single
+        plain-English sentence instead of a long red stack trace in the web UI."""
+
+        async def generate_content_async(self, llm_request, stream=False):
+            try:
+                async for resp in super().generate_content_async(llm_request, stream=stream):
+                    yield resp
+            except _genai_errors.ClientError as e:
+                code = getattr(e, "code", None)
+                if code == 429:
+                    text = ("The Gemini quota for this API key has been used up for now. "
+                            "Please try again later, or use a key that still has quota.")
+                else:
+                    text = ("The request to the model couldn't be completed "
+                            f"({getattr(e, 'message', str(e))}).")
+                yield LlmResponse(
+                    content=_genai_types.Content(
+                        role="model", parts=[_genai_types.Part(text="⚠️ " + text)]
+                    ),
+                    turn_complete=True,
+                )
 
     root_agent = Agent(
-        model="gemini-2.5-flash",
+        model=FriendlyGemini(model="gemini-2.5-flash"),
         name="alz_biomarker_hypothesis_agent",
         description=("Research assistant that generates citation-backed hypothesis cards "
                      "from subject-level Alzheimer's biomarker data."),
