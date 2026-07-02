@@ -201,8 +201,16 @@ def validate(df):
 
 
 if __name__ == "__main__":
-    df = generate()
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Generate a synthetic ADNI-style dataset.")
+    parser.add_argument("--n", type=int, default=CONFIG["n_subjects"], help="number of subjects")
+    parser.add_argument("--seed", type=int, default=CONFIG["seed"], help="random seed")
+    parser.add_argument("--out", default="synthetic_adni_style.csv", help="output CSV path")
+    args = parser.parse_args()
+
+    config = dict(CONFIG, n_subjects=args.n, seed=args.seed)
+    df = generate(config)
     validate(df)
-    out = "/mnt/user-data/outputs/synthetic_adni_style.csv"
-    df.to_csv(out, index=False)
-    print(f"\nWrote {out}")
+    df.to_csv(args.out, index=False)
+    print(f"\nWrote {args.out}")

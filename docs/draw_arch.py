@@ -1,4 +1,5 @@
 """Render the agent architecture diagram to PNG (cover image) + SVG (writeup vector)."""
+import os
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -143,6 +144,7 @@ for label, x, w, fc, ec, tc in chips:
     box(x, 828, w, 30, fc, ec, r=8, lw=1.5)
     txt(x + w/2, 844, label, size=9.5, color=tc, ha="center")
 
-fig.savefig("/mnt/user-data/outputs/architecture_diagram.png", dpi=100, facecolor="white")
-fig.savefig("/mnt/user-data/outputs/architecture_diagram.svg", facecolor="white")
+_here = os.path.dirname(os.path.abspath(__file__))
+fig.savefig(os.path.join(_here, "architecture_diagram.png"), dpi=100, facecolor="white")
+fig.savefig(os.path.join(_here, "architecture_diagram.svg"), facecolor="white")
 print("wrote architecture_diagram.png and .svg")

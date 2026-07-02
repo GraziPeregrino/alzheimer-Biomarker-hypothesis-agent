@@ -14,6 +14,9 @@ env/
 *.parquet
 *.pkl
 
+# ADK local session/state store (created by `adk web` / `adk run`)
+.adk/
+
 # Secrets & credentials — never commit these
 .env
 *.key
