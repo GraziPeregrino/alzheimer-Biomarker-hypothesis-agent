@@ -91,11 +91,31 @@ def _analyzable_biomarkers(df: pd.DataFrame) -> list:
 # --------------------------------------------------------------------------- #
 # TOOLS (ADK auto-wraps these; each returns a dict with a 'status' key)
 # --------------------------------------------------------------------------- #
-def load_biomarker_dataset(csv_path: str, dataset_id: str = "current") -> dict:
+DEFAULT_DATASET = "synthetic_adni_style.csv"
+
+
+def _resolve_csv(csv_path: str) -> str:
+    """Return a usable path to the CSV. If it isn't found as given, fall back to
+    the bundled dataset next to this module — so the tool works regardless of the
+    process working directory or a made-up filename from the model."""
+    if os.path.isfile(csv_path):
+        return csv_path
+    here = os.path.dirname(os.path.abspath(__file__))
+    candidate = os.path.join(here, os.path.basename(csv_path))
+    if os.path.isfile(candidate):
+        return candidate
+    bundled = os.path.join(here, DEFAULT_DATASET)
+    if os.path.isfile(bundled):
+        return bundled
+    return csv_path  # let load_dataset raise a clear error
+
+
+def load_biomarker_dataset(csv_path: str = DEFAULT_DATASET, dataset_id: str = "current") -> dict:
     """Load, clean, and validate a subject-level biomarker CSV, then register it.
 
     Args:
         csv_path: Path to the CSV (long format, one row per subject-visit).
+            Defaults to the bundled synthetic dataset; call with no path to use it.
         dataset_id: Handle to reference this dataset in later tool calls.
 
     Returns:
@@ -103,7 +123,7 @@ def load_biomarker_dataset(csv_path: str, dataset_id: str = "current") -> dict:
         available_biomarkers, and issues (if any).
     """
     try:
-        raw = load_dataset(csv_path)
+        raw = load_dataset(_resolve_csv(csv_path))
     except Exception as e:  # noqa: BLE001
         return {"status": "error", "message": f"Could not load '{csv_path}': {e}"}
     clean, log = clean_biomarkers(raw)
@@ -242,7 +262,8 @@ cards. You are NOT a clinical tool.
 
 Workflow for every research question:
 1. Call check_query_safety FIRST. If not allowed, reply with its suggested_response and stop.
-2. If no dataset is loaded yet, call load_biomarker_dataset.
+2. If no dataset is loaded yet, call load_biomarker_dataset with NO arguments — it
+   loads the bundled synthetic dataset by default. Never invent a CSV filename.
 3. Call inspect_dataset to see which biomarkers are analyzable and whether the genotype
    groups are adequately powered.
 4. Map the question to ONE biomarker column and ONE scheme
