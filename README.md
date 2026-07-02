@@ -90,4 +90,4 @@ refuses individual diagnosis, prognosis, treatment, and personal-risk questions.
 
 ## License
 
-MIT (or your choice — add a LICENSE file).
+MIT License.
