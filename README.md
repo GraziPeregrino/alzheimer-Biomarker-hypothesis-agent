@@ -4,7 +4,7 @@ An agentic research workflow that turns subject level Alzheimer's biomarker data
 transparent, citation backed, **hypothesis-generating** cards. Built on Google ADK +
 Gemini for the *AI Agents: Intensive Vibe Coding* capstone.
 
-> **Research / education tool — not for diagnosis or clinical use.** Every result is
+> **Research / education tool, not for diagnosis or clinical use.** Every result is
 > observational and hypothesis generating. The included dataset is **synthetic** (see
 > below); reported effects are built into the data generator by design, not evidence
 > about real biology.
