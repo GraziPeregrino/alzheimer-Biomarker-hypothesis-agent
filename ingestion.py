@@ -1,5 +1,5 @@
 """
-ingestion.py — Day 2 ingestion layer for the Alzheimer's Biomarker Hypothesis Agent
+ingestion.py — ingestion layer for the Alzheimer's Biomarker Hypothesis Agent
 ====================================================================================
 
 Five agent-ready tools (clean signatures, typed, JSON-friendly returns so they can
@@ -16,7 +16,7 @@ Design notes
 ------------
 * annotate_variant ALWAYS returns a correct curated baseline from VARIANT_KB, then
   *optionally* enriches it from MyVariant.info / Ensembl / GWAS Catalog. Live calls
-  are cached to disk, so a flaky network never breaks the demo (Day 2 requirement).
+  are cached to disk, so a flaky network never breaks the demo.
 * APOE ε-alleles are a HAPLOTYPE of two SNPs (rs429358 + rs7412), not a single
   variant. `apoe_e4_count` is the derived ε4 dosage. The KB encodes this correctly,
   and clean_biomarkers can derive apoe_e4_count from an apoe_genotype column when the

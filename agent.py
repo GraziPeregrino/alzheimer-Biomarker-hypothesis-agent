@@ -1,5 +1,5 @@
 """
-agent.py — Day 4 agent layer for the Alzheimer's Biomarker Hypothesis Agent (revised)
+agent.py — agent layer for the Alzheimer's Biomarker Hypothesis Agent (revised)
 =====================================================================================
 
 Wires the tested ingestion + stats tools to a Google ADK / Gemini agent. The LLM
@@ -13,7 +13,7 @@ Two layers, same tools:
   * HypothesisAgentCore     — a deterministic orchestrator using the SAME tools, with
                               a keyword intent parser instead of the LLM. Runs offline,
                               serves as the demo fallback, and is what the eval harness
-                              (Day 4) scores.
+                              scores.
 
 SAFETY (two layers): this is a research / hypothesis-generation tool.
   * `check_query_safety` refuses individual-level clinical questions (diagnosis,

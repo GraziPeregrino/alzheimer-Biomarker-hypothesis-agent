@@ -1,5 +1,5 @@
 """
-stats_engine.py — Day 3 statistics + hypothesis engine (revised)
+stats_engine.py — statistics + hypothesis engine (revised)
 ================================================================
 
 Consumes the cleaned DataFrame + genotype groups from ingestion.py and turns them
@@ -618,7 +618,7 @@ def run_hypothesis(df: pd.DataFrame, biomarker: str, scheme: str = "e4_carrier")
 
 
 def render_card_text(card: dict) -> str:
-    """Human-readable rendering matching the Day 3 card format."""
+    """Human-readable rendering matching the card format."""
     lines = ["Hypothesis:", "  " + card["hypothesis"], "", "Evidence:"]
     lines += [f"  - {e}" for e in card["evidence"]]
     lines += ["", "Caution:"] + [f"  - {c}" for c in card["caution"]]

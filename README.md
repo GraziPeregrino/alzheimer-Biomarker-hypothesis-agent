@@ -64,14 +64,14 @@ questions keep context.
 
 ## How it maps to the course
 
-- **Day 1 — Agents:** ADK + Gemini orchestrator that plans and calls tools.
-- **Day 2 — Tools & interoperability:** Python-function tools; variant annotation via
+- **Agents:** ADK + Gemini orchestrator that plans and calls tools.
+- **Tools & interoperability:** Python-function tools; variant annotation via
   Ensembl / MyVariant / GWAS Catalog with an offline-safe cache.
-- **Day 3 — Context & memory:** in-memory dataset store with disk rehydration; session
+- **Context & memory:** in-memory dataset store with disk rehydration; session
   follow-ups.
-- **Day 4 — Quality & security:** eval harness (routing, safety, grounding, ranking) and
+- **Quality & security:** eval harness (routing, safety, grounding, ranking) and
   a defense-in-depth clinical-question guardrail.
-- **Day 5 — Packaging:** this repo, the notebook, and the architecture diagram.
+- **Packaging:** this repo, the notebook, and the architecture diagram.
 
 ## Data note
 

@@ -1,5 +1,5 @@
 """
-evals.py — Day 4 evaluation harness for the Alzheimer's Biomarker Hypothesis Agent
+evals.py — evaluation harness for the Alzheimer's Biomarker Hypothesis Agent
 ==================================================================================
 
 Scores the agent on four axes the capstone rubric cares about:
