@@ -18,6 +18,9 @@ Calibration anchors (OASIS-3; LaMontagne et al., 2019, medRxiv 2019.12.13.190149
   - APOE genotype frequencies in OASIS-3 (e4 allele freq ~ 0.23, e2 ~ 0.08)
 Cascade ordering (Jack et al. 2010 Lancet Neurol; Bateman et al. 2012 NEJM):
   amyloid -> tau -> neurodegeneration -> cognition
+  This ordering is encoded by the per-biomarker logistic onset centers below:
+  amyloid moves at the LOWEST progression index p, then tau, then
+  neurodegeneration, then cognition (a lower center => earlier onset).
 
 Author: capstone build helper
 """
@@ -56,6 +59,15 @@ CONFIG = dict(
     rate_base_mean=0.050, rate_base_sd=0.032, rate_min=0.004,
     rate_e4_mult=0.50,       # each e4 allele multiplies rate by (1 + this)
     rate_trem2_mult=0.40,
+
+    # biomarker onset centers (lower center => earlier in the cascade).
+    # amyloid < tau < neurodegeneration < cognition, per Jack 2010 / Bateman 2012.
+    onset_amyloid=0.60,      # earliest to move (unchanged from original calibration)
+    onset_amyloid_e4_shift=0.12,   # each e4 allele shifts amyloid onset earlier
+    onset_tau=0.66,
+    onset_neurodeg=0.72,
+    onset_cdrsb=0.76,
+    onset_cognition=0.80,    # MMSE; lags everything
 )
 
 # --------------------------------------------------------------------------- #
@@ -78,28 +90,30 @@ def _sample_apoe(rng, freqs, n):
     return np.array(genotype), np.array(e4_count), np.array(e2_count)
 
 
-def _biomarkers_from_latent(p, age, e4, rng, n):
+def _biomarkers_from_latent(p, age, e4, rng, n, c=CONFIG):
     """Map latent progression index p -> observable biomarkers, with staggered
-    onsets so amyloid leads and cognition lags. Returns a dict of arrays."""
+    onsets so amyloid leads and cognition lags (amyloid < tau < neurodegeneration
+    < cognition). Returns a dict of arrays."""
     # amyloid Centiloid: earliest to move; e4 shifts onset earlier + raises plateau
     amy_base, amy_plateau = 2.0, 100.0 + 8.0 * e4
-    amyloid = amy_base + (amy_plateau - amy_base) * _logistic(p - 0.60 + 0.12 * e4, k=4.0)
+    amyloid = amy_base + (amy_plateau - amy_base) * _logistic(
+        p - c["onset_amyloid"] + c["onset_amyloid_e4_shift"] * e4, k=4.0)
     amyloid += rng.normal(0, 4.0, n)
 
     # tau SUVR: lags amyloid
-    tau = 1.05 + (2.00 - 1.05) * _logistic(p - 0.40, k=5.0) + rng.normal(0, 0.05, n)
+    tau = 1.05 + (2.00 - 1.05) * _logistic(p - c["onset_tau"], k=5.0) + rng.normal(0, 0.05, n)
 
-    # neurodegeneration block (onset ~0.50): hippocampus, entorhinal, FDG
-    nd = _logistic(p - 0.50, k=5.0)
+    # neurodegeneration block: hippocampus, entorhinal, FDG (lags tau)
+    nd = _logistic(p - c["onset_neurodeg"], k=5.0)
     hipp_base = 7800.0 - 11.0 * (age - 50.0)                       # mild age atrophy
     hippocampal = hipp_base - 2000.0 * (1 + 0.10 * e4) * nd + rng.normal(0, 130, n)
     entorhinal = 3.40 - 0.004 * (age - 50.0) - 1.00 * nd + rng.normal(0, 0.08, n)
     fdg = 1.35 - 0.35 * nd + rng.normal(0, 0.03, n)
 
     # cognition: lags everything
-    cog = _logistic(p - 0.70, k=6.0)
+    cog = _logistic(p - c["onset_cognition"], k=6.0)
     mmse = 30.0 - 13.0 * cog + rng.normal(0, 1.0, n)
-    cdrsb_raw = 13.0 * _logistic(p - 0.66, k=6.0) + rng.normal(0, 0.6, n)
+    cdrsb_raw = 13.0 * _logistic(p - c["onset_cdrsb"], k=6.0) + rng.normal(0, 0.6, n)
 
     return dict(amyloid=amyloid, tau=tau, hippocampal=hippocampal,
                 entorhinal=entorhinal, fdg=fdg, mmse=mmse, cdrsb_raw=cdrsb_raw)
@@ -147,7 +161,7 @@ def generate(config=CONFIG):
             yrs = m / 12.0
             p = p0[i] + rate[i] * yrs
             age = base_age[i] + yrs
-            bm = _biomarkers_from_latent(p, age, e4_count[i], rng, 1)
+            bm = _biomarkers_from_latent(p, age, e4_count[i], rng, 1, c)
             cdrsb = float(np.clip(np.round(bm["cdrsb_raw"][0] * 2) / 2, 0, 18))
             if cdrsb < 0.25:
                 cdrsb = 0.0
@@ -197,6 +211,15 @@ def validate(df):
         mmse=("mmse", "mean"),
     ).round(1)
     print(summary.to_string())
+    print("-" * 64)
+    # cascade check: median progression point at which each marker crosses its midpoint
+    print("Cascade onset order (amyloid should be earliest, cognition latest):")
+    for name, ctr in sorted({"amyloid": CONFIG["onset_amyloid"], "tau": CONFIG["onset_tau"],
+                             "neurodegeneration": CONFIG["onset_neurodeg"],
+                             "cdrsb": CONFIG["onset_cdrsb"],
+                             "cognition(mmse)": CONFIG["onset_cognition"]}.items(),
+                            key=lambda kv: kv[1]):
+        print(f"   onset p={ctr:.2f}  {name}")
     print("=" * 64)
 
 
