@@ -9,7 +9,7 @@ Gemini for the *AI Agents: Intensive Vibe Coding* capstone.
 > below); reported effects are built into the data generator by design, not evidence
 > about real biology.
 
-![Architecture](docs/Biomarker Agent Workflow (1).pdf)
+![Architecture](docs/architecture_diagram.png)
 
 ## What it does
 
