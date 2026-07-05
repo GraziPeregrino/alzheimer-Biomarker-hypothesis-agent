@@ -30,6 +30,8 @@ and references are all traceable to tool output.
 ├── tools/
 │   ├── ingestion_tools.py           # load / validate / clean / group / annotate
 │   └── stats_tools.py               # summaries, slopes, trajectories, adjusted effects, ranking, cards
+├── mcp_servers/
+│   └── annotation_server.py         # MCP server wrapping variant annotation as tools
 ├── data/
 │   ├── generate_synthetic_adni.py   # synthetic ADNI/OASIS style data generator
 │   ├── synthetic_adni_style.csv     # demo dataset (synthetic, ADNI ready schema)
@@ -69,11 +71,20 @@ To run the **Gemini** agent, install `google-adk`, put your Gemini credentials i
 the browser. The agent is defined in `agents/coordinator_agent.py` (`root_agent`); the
 `agents/alz_agent/` package is a thin wrapper that lets ADK discover it.
 
+The agent launches the annotation **MCP server** automatically as a subprocess, so
+you don't run it yourself. To exercise it directly (no API key needed):
+
+```bash
+python mcp_servers/annotation_server.py    # starts the MCP server over stdio
+```
+
 ## How it maps to the course
 
 - **Agents:** ADK + Gemini orchestrator that plans and calls tools.
 - **Tools & interoperability:** Python-function tools; variant annotation via
-  Ensembl / MyVariant / GWAS Catalog with an offline-safe cache.
+  Ensembl / MyVariant / GWAS Catalog with an offline-safe cache, also exposed
+  through an MCP server (`mcp_servers/annotation_server.py`) and wired into the
+  agent as an MCP toolset.
 - **Context & memory:** in-memory dataset store with disk rehydration; session
   follow-ups.
 - **Quality & security:** eval harness (routing, safety, grounding, ranking) and
