@@ -269,6 +269,33 @@ TOOLS = [load_biomarker_dataset, inspect_dataset, summarize_groups,
          generate_hypothesis, rank_biomarkers_by_effect, check_query_safety]
 
 
+def _annotation_mcp_toolset():
+    """Expose the variant-annotation MCP server (mcp_servers/annotation_server.py)
+    to the LLM agent as a standardized tool. Returns None if the mcp package or the
+    server file isn't available, so the deterministic core and evals are unaffected."""
+    try:
+        from google.adk.tools.mcp_tool.mcp_toolset import (MCPToolset,
+                                                           StdioConnectionParams)
+        from mcp import StdioServerParameters
+    except Exception:
+        return None
+    server = os.path.join(_ROOT, "mcp_servers", "annotation_server.py")
+    if not os.path.isfile(server):
+        return None
+    return MCPToolset(
+        connection_params=StdioConnectionParams(
+            server_params=StdioServerParameters(
+                command=_sys.executable, args=[server], cwd=_ROOT,
+            )
+        )
+    )
+
+
+_annotation_toolset = _annotation_mcp_toolset()
+if _annotation_toolset is not None:
+    TOOLS.append(_annotation_toolset)
+
+
 # --------------------------------------------------------------------------- #
 # System instruction for the LLM agent
 # --------------------------------------------------------------------------- #
@@ -288,6 +315,10 @@ Workflow for every research question:
    ('e4_dose' | 'e4_carrier' | 'trem2'). If the question is too vague to pick a biomarker,
    ask a brief clarifying question instead of guessing.
 5. Call generate_hypothesis and present the returned card faithfully.
+
+Optionally, to add curated genetic context about a variant or gene (APOE, TREM2,
+rsIDs, or aliases like 'APOE e4' / 'R47H'), call the annotate_variant tool. Use it
+for background only; it does not change the statistics in the card.
 
 Hard rules:
 - Never invent statistics or citations. Report ONLY what the tools return; every number and
