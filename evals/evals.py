@@ -29,7 +29,7 @@ import re
 import sys
 from typing import List
 
-# Make the project root importable so `agents.*` and `tools.*` resolve when this
+# Make the project root importable so `agents.*` and `skills.*` resolve when this
 # harness is run as `python evals/evals.py`.
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _ROOT not in sys.path:
@@ -37,7 +37,7 @@ if _ROOT not in sys.path:
 
 from agents.coordinator_agent import (HypothesisAgentCore, check_query_safety,
                                       rank_biomarkers_by_effect, _get_df)
-from tools.stats_tools import CITATIONS, analyze
+from skills.stats_skills import CITATIONS, analyze
 
 CSV = "synthetic_adni_style.csv"
 

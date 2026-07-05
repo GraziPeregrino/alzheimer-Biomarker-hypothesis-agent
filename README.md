@@ -27,9 +27,9 @@ and references are all traceable to tool output.
 ├── agents/
 │   ├── coordinator_agent.py         # ADK/Gemini agent + routing, guardrail & deterministic core
 │   └── alz_agent/                   # thin wrapper so `adk web` can discover the agent
-├── tools/
-│   ├── ingestion_tools.py           # load / validate / clean / group / annotate
-│   └── stats_tools.py               # summaries, slopes, trajectories, adjusted effects, ranking, cards
+├── skills/
+│   ├── ingestion_skills.py          # load / validate / clean / group / annotate
+│   └── stats_skills.py              # summaries, slopes, trajectories, adjusted effects, ranking, cards
 ├── mcp_servers/
 │   └── annotation_server.py         # MCP server wrapping variant annotation as tools
 ├── data/
@@ -81,10 +81,10 @@ python mcp_servers/annotation_server.py    # starts the MCP server over stdio
 ## How it maps to the course
 
 - **Agents:** ADK + Gemini orchestrator that plans and calls tools.
-- **Tools & interoperability:** Python-function tools; variant annotation via
-  Ensembl / MyVariant / GWAS Catalog with an offline-safe cache, also exposed
-  through an MCP server (`mcp_servers/annotation_server.py`) and wired into the
-  agent as an MCP toolset.
+- **Skills & interoperability:** Python-function skills (in `skills/`); variant
+  annotation via Ensembl / MyVariant / GWAS Catalog with an offline-safe cache, also
+  exposed through an MCP server (`mcp_servers/annotation_server.py`) and wired into
+  the agent as an MCP toolset.
 - **Context & memory:** in-memory dataset store with disk rehydration; session
   follow-ups.
 - **Quality & security:** eval harness (routing, safety, grounding, ranking) and

@@ -52,16 +52,18 @@ from typing import Dict, Optional
 import pandas as pd
 
 # This module lives in agents/; ensure the project root is importable so the
-# `tools.*` packages resolve whether launched via main.py, evals, adk web, or
+# `skills.*` packages resolve whether launched via main.py, evals, adk web, or
 # run directly.
 import sys as _sys
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _ROOT not in _sys.path:
     _sys.path.insert(0, _ROOT)
 
-from tools.ingestion_tools import load_dataset, clean_biomarkers, validate_schema, describe_groups
-from tools.stats_tools import (BIOMARKER_META, analyze, make_hypothesis_card,
-                               render_card_text, compute_group_summary, rank_biomarkers)
+from skills.ingestion_skills import load_dataset, clean_biomarkers, validate_schema, describe_groups
+from skills.stats_skills import (
+    BIOMARKER_META, analyze, make_hypothesis_card,
+    render_card_text, compute_group_summary, rank_biomarkers,
+)
 
 
 # --------------------------------------------------------------------------- #
@@ -303,6 +305,10 @@ SYSTEM_INSTRUCTION = """
 You are the Alzheimer's Biomarker Hypothesis Agent — a RESEARCH assistant that turns
 subject-level biomarker data into transparent, citation-backed, hypothesis-generating
 cards. You are NOT a clinical tool.
+
+You have a set of skills (callable tools) for safety screening, loading and inspecting
+the dataset, computing statistics, ranking biomarkers, and annotating genetic variants.
+Use the right skill for each step below.
 
 Workflow for every research question:
 1. Call check_query_safety FIRST. If not allowed, reply with its suggested_response and stop.

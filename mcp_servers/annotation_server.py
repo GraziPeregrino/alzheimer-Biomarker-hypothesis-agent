@@ -2,7 +2,7 @@
 annotation_server.py — a thin MCP server for variant annotation.
 
 This does NOT reimplement any annotation logic. It wraps the project's existing
-`tools.ingestion_tools.annotate_variant` (curated knowledge base + cached
+`skills.ingestion_skills.annotate_variant` (curated knowledge base + cached
 Ensembl / MyVariant / GWAS Catalog enrichment) behind the Model Context Protocol,
 so any MCP client — including the ADK/Gemini agent — can call it as a standardized
 "literature / genetic lookup" tool.
@@ -15,7 +15,7 @@ import os
 import sys
 
 # This file runs as a subprocess script, so sys.path[0] is this folder — add the
-# project root so `tools.*` imports resolve.
+# project root so `skills.*` imports resolve.
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
@@ -23,7 +23,7 @@ if _ROOT not in sys.path:
 from mcp.server.fastmcp import FastMCP
 
 # The existing annotation functions — wrapped, not rewritten.
-from tools.ingestion_tools import annotate_variant as _annotate_variant, VARIANT_KB
+from skills.ingestion_skills import annotate_variant as _annotate_variant, VARIANT_KB
 
 mcp = FastMCP("biomarker-annotation")
 

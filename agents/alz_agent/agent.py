@@ -8,7 +8,7 @@ import os
 import sys
 
 # Walk up from this file to find the project root (the dir holding
-# requirements.txt), then put it on sys.path so `agents.*` and `tools.*` import
+# requirements.txt), then put it on sys.path so `agents.*` and `skills.*` import
 # cleanly no matter where this package lives.
 _here = os.path.dirname(os.path.abspath(__file__))
 _root = _here
