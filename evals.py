@@ -96,44 +96,60 @@ def check_safety(_core) -> List[dict]:
     return out
 
 
-def _nums_in(text: str) -> List[float]:
-    return [float(x) for x in re.findall(r"-?\d+\.\d+", text)]
-
-
 def check_grounding(core) -> List[dict]:
     df = _get_df(core.dataset_id)
     out = []
     for c in GROUNDING_CASES:
-        r = core.ask(c["q"])
-        card, text = r["card"], r["text"]
-        bundle = analyze(df, r["biomarker"], r["scheme"])
-        problems = []
+        try:
+            r = core.ask(c["q"])
+            if r.get("mode") != "answer" or "card" not in r:
+                out.append({"case": c["q"], "pass": False,
+                            "detail": f"expected an answer card, got mode={r.get('mode')}"})
+                continue
+            card, text = r["card"], r["text"]
+            bundle = analyze(df, r["biomarker"], r["scheme"])
+            problems: List[str] = []
+            notes: List[str] = []
 
-        # (a) citations only from curated set
-        bad_cites = [c2 for c2 in card["citations"] if c2 not in CITATIONS.values()]
-        if bad_cites:
-            problems.append(f"{len(bad_cites)} non-curated citation(s)")
+            # (a) citations only from the curated set
+            bad_cites = [x for x in card["citations"] if x not in CITATIONS.values()]
+            if bad_cites:
+                problems.append(f"{len(bad_cites)} non-curated citation(s)")
 
-        # (b) mandatory cautions present
-        joined = " ".join(card["caution"])
-        missing = [m for m in REQUIRED_CAUTION_MARKERS if m.lower() not in joined.lower()]
-        if missing:
-            problems.append(f"missing caution markers {missing}")
+            # (b) mandatory cautions present
+            joined = " ".join(card["caution"]).lower()
+            missing = [m for m in REQUIRED_CAUTION_MARKERS if m.lower() not in joined]
+            if missing:
+                problems.append(f"missing caution markers {missing}")
 
-        # (c) reported baseline means + diff equal recomputed stats (rounded to text)
-        cs = bundle["cross_sectional"]
-        if cs.get("type") == "group_contrast":
-            for key in ("mean_a", "mean_b", "mean_diff"):
-                val = round(cs[key], 2)
-                if not re.search(rf"(?<!\d){re.escape(f'{val:.2f}')}", text):
-                    problems.append(f"stat {key}={val:.2f} not found verbatim in card")
-            # (d) direction not inverted
-            says_higher = "higher" in text.split("Evidence:")[1].split("\n")[1].lower()
-            if (cs["mean_diff"] > 0) != says_higher:
-                problems.append("effect DIRECTION inverted vs computed sign")
+            # (c)+(d) baseline group-contrast faithfulness — only when computable
+            cs = bundle["cross_sectional"]
+            if cs.get("type") == "group_contrast" and not cs.get("insufficient_n"):
+                # (c) reported means + diff appear verbatim in the rendered card
+                for key in ("mean_a", "mean_b", "mean_diff"):
+                    val = round(cs[key], 2)
+                    if not re.search(rf"(?<!\d){re.escape(f'{val:.2f}')}", text):
+                        problems.append(f"stat {key}={val:.2f} not found verbatim in card")
+                # (d) direction not inverted — read the first evidence item directly
+                #     (robust to render_card_text layout changes)
+                first_ev = card["evidence"][0].lower() if card.get("evidence") else ""
+                says_higher = "higher" in first_ev
+                if (cs["mean_diff"] > 0) != says_higher:
+                    problems.append("effect DIRECTION inverted vs computed sign")
+            elif cs.get("type") == "group_contrast":
+                # underpowered contrast: the card correctly reports this; we simply
+                # cannot verify group stats, so note it rather than fail or crash.
+                notes.append(f"cross-sectional underpowered "
+                             f"(n_a={cs.get('n_a')}, n_b={cs.get('n_b')}); stat check skipped")
 
-        out.append({"case": c["q"], "pass": len(problems) == 0,
-                    "detail": "; ".join(problems) if problems else "faithful"})
+            if problems:
+                detail = "; ".join(problems)
+            else:
+                detail = "faithful" + (f" ({'; '.join(notes)})" if notes else "")
+            out.append({"case": c["q"], "pass": len(problems) == 0, "detail": detail})
+        except Exception as e:  # one bad case shouldn't abort the whole suite
+            out.append({"case": c["q"], "pass": False,
+                        "detail": f"error: {type(e).__name__}: {e}"})
     return out
 
 
@@ -157,6 +173,9 @@ def check_ranking(core) -> List[dict]:
 
 def run_all() -> dict:
     core = HypothesisAgentCore(CSV)
+    if core.load_result.get("status") != "success":
+        raise SystemExit(f"Could not load '{CSV}': "
+                         f"{core.load_result.get('message', 'unknown error')}")
     suites = {"routing": check_routing, "safety": check_safety,
               "grounding": check_grounding, "ranking": check_ranking}
     results, totals = {}, {"pass": 0, "total": 0}
