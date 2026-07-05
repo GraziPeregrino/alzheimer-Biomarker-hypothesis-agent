@@ -18,7 +18,9 @@ Design notes
   *optionally* enriches it from MyVariant.info / Ensembl / GWAS Catalog. Live calls
   are cached to disk, so a flaky network never breaks the demo (Day 2 requirement).
 * APOE ε-alleles are a HAPLOTYPE of two SNPs (rs429358 + rs7412), not a single
-  variant. `apoe_e4_count` is the derived ε4 dosage. The KB encodes this correctly.
+  variant. `apoe_e4_count` is the derived ε4 dosage. The KB encodes this correctly,
+  and clean_biomarkers can derive apoe_e4_count from an apoe_genotype column when the
+  count is not supplied directly.
 
 To register as ADK tools (in your agent notebook):
     from google.adk.tools import FunctionTool
@@ -29,6 +31,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import urllib.parse
 import urllib.request
 from typing import Dict, List, Tuple, Union
@@ -156,6 +159,34 @@ def validate_schema(df: pd.DataFrame) -> dict:
 _TREM2_CARRIER = {"r47h", "carrier", "positive", "pos", "rs75932628", "1", "true"}
 _TREM2_NONCARRIER = {"wt", "noncarrier", "non-carrier", "negative", "neg", "0",
                      "false", "wildtype", "wild-type"}
+# tokens that should be treated as missing after string normalization
+_NULL_TOKENS = {"", "NAN", "NONE", "NA", "N/A", "NULL", "?"}
+
+
+def _norm_categorical(series: pd.Series, mapping: Union[Dict[str, str], None] = None) -> pd.Series:
+    """Upper-case/strip a categorical column WITHOUT turning missing values into the
+    literal string 'NAN'. The original missing mask is preserved, and common null-like
+    tokens are mapped back to NaN.
+    """
+    was_na = series.isna()
+    out = series.astype(str).str.strip().str.upper()
+    if mapping:
+        out = out.replace(mapping)
+    out = out.where(~out.isin(_NULL_TOKENS))  # null-like strings -> NaN
+    out = out.mask(was_na)                     # originally-missing -> NaN
+    return out
+
+
+def _e4_count_from_genotype(genotype) -> float:
+    """Derive ε4 dosage (0/1/2) from an APOE genotype string like 'e3/e4', 'ε3/ε4',
+    '3/4', 'E4E4'. Returns NaN if it can't be parsed to two alleles among {2,3,4}."""
+    if genotype is None or (isinstance(genotype, float) and np.isnan(genotype)):
+        return np.nan
+    t = re.sub(r"[^0-9e]", "", str(genotype).lower().replace("ε", "e"))
+    alleles = re.findall(r"e?([234])", t)
+    if len(alleles) < 2:
+        return np.nan
+    return float(sum(1 for a in alleles[:2] if a == "4"))
 
 
 def clean_biomarkers(df: pd.DataFrame) -> Tuple[pd.DataFrame, dict]:
@@ -163,7 +194,8 @@ def clean_biomarkers(df: pd.DataFrame) -> Tuple[pd.DataFrame, dict]:
 
     Cleaning is transparent: nothing is silently fabricated. Out-of-range numeric
     values are set to NaN (quarantined, not clipped) and counted in the log so the
-    downstream stats stay honest.
+    downstream stats stay honest. Missing categorical values stay missing (they are
+    NOT converted to the string 'NAN').
 
     Args:
         df: Raw DataFrame (typically straight from load_dataset).
@@ -174,7 +206,12 @@ def clean_biomarkers(df: pd.DataFrame) -> Tuple[pd.DataFrame, dict]:
     out = df.copy()
     log: dict = {"coerced_numeric": {}, "quarantined_out_of_range": {},
                  "normalized_categoricals": {}, "dropped_duplicate_visits": 0,
-                 "messages": []}
+                 "derived_columns": {}, "messages": []}
+
+    # derive apoe_e4_count from apoe_genotype ONLY when the count is not supplied
+    if "apoe_e4_count" not in out.columns and "apoe_genotype" in out.columns:
+        out["apoe_e4_count"] = out["apoe_genotype"].map(_e4_count_from_genotype)
+        log["derived_columns"]["apoe_e4_count"] = int(out["apoe_e4_count"].notna().sum())
 
     # numeric coercion
     for col in NUMERIC_COLS:
@@ -185,16 +222,17 @@ def clean_biomarkers(df: pd.DataFrame) -> Tuple[pd.DataFrame, dict]:
             if made_na:
                 log["coerced_numeric"][col] = made_na
 
-    # categorical normalization
+    # categorical normalization (missing stays missing)
     if "sex" in out.columns:
-        out["sex"] = out["sex"].astype(str).str.strip().str.upper().replace(
-            {"MALE": "M", "FEMALE": "F"})
+        out["sex"] = _norm_categorical(out["sex"], {"MALE": "M", "FEMALE": "F"})
         log["normalized_categoricals"]["sex"] = sorted(out["sex"].dropna().unique())
     if "diagnosis" in out.columns:
-        out["diagnosis"] = out["diagnosis"].astype(str).str.strip().str.upper()
+        out["diagnosis"] = _norm_categorical(out["diagnosis"])
         log["normalized_categoricals"]["diagnosis"] = sorted(out["diagnosis"].dropna().unique())
     if "trem2_variant_status" in out.columns:
         def _norm_trem2(v):
+            if v is None or (isinstance(v, float) and np.isnan(v)):
+                return np.nan
             t = str(v).strip().lower()
             if t in _TREM2_CARRIER:
                 return "R47H_carrier"
@@ -203,7 +241,7 @@ def clean_biomarkers(df: pd.DataFrame) -> Tuple[pd.DataFrame, dict]:
             return "unknown"
         out["trem2_variant_status"] = out["trem2_variant_status"].map(_norm_trem2)
         log["normalized_categoricals"]["trem2_variant_status"] = \
-            sorted(out["trem2_variant_status"].dropna().unique())
+            sorted(pd.Series(out["trem2_variant_status"]).dropna().unique())
 
     # quarantine out-of-range numeric values -> NaN
     for col, (kind, rng) in SCHEMA.items():
@@ -223,7 +261,7 @@ def clean_biomarkers(df: pd.DataFrame) -> Tuple[pd.DataFrame, dict]:
         out = out.sort_values(["subject_id", "visit_month"]).reset_index(drop=True)
 
     if not any([log["coerced_numeric"], log["quarantined_out_of_range"],
-                log["dropped_duplicate_visits"]]):
+                log["dropped_duplicate_visits"], log["derived_columns"]]):
         log["messages"].append("No corrections needed; data already clean.")
     else:
         log["messages"].append("Cleaning applied; see log fields for details.")
@@ -234,6 +272,8 @@ def clean_biomarkers(df: pd.DataFrame) -> Tuple[pd.DataFrame, dict]:
 # 4. group_by_genotype
 # --------------------------------------------------------------------------- #
 _SCHEMES = ("e4_dose", "e4_carrier", "trem2")
+_SCHEME_REQUIRES = {"e4_dose": ["apoe_e4_count"], "e4_carrier": ["apoe_e4_count"],
+                    "trem2": ["trem2_variant_status"]}
 
 
 def group_by_genotype(df: pd.DataFrame, scheme: str = "e4_carrier"
@@ -250,6 +290,10 @@ def group_by_genotype(df: pd.DataFrame, scheme: str = "e4_carrier"
     """
     if scheme not in _SCHEMES:
         raise ValueError(f"scheme must be one of {_SCHEMES}")
+    missing = [c for c in _SCHEME_REQUIRES[scheme] if c not in df.columns]
+    if missing:
+        raise KeyError(f"group_by_genotype: scheme '{scheme}' requires column(s) "
+                       f"{missing}, which are not present in the DataFrame.")
     groups: Dict[str, pd.DataFrame] = {}
     if scheme == "e4_dose":
         for k in (0, 1, 2):
@@ -326,7 +370,9 @@ _CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".variant_
 
 def _cache_path(source: str, rsid: str) -> str:
     os.makedirs(_CACHE_DIR, exist_ok=True)
-    return os.path.join(_CACHE_DIR, f"{source}__{rsid}.json")
+    # sanitize rsid for use as a filename
+    safe = re.sub(r"[^A-Za-z0-9_.-]", "_", rsid)
+    return os.path.join(_CACHE_DIR, f"{source}__{safe}.json")
 
 
 def _http_get_json(url: str, timeout: float = 6.0):
@@ -349,11 +395,13 @@ def _fetch_source(source: str, rsid: str, use_network: bool) -> dict:
     if not use_network:
         return {"status": "unavailable_offline", "data": None}
 
+    rsid_q = urllib.parse.quote(rsid, safe="")
     urls = {
-        "myvariant": f"https://myvariant.info/v1/query?q={rsid}&size=1",
-        "ensembl": f"https://rest.ensembl.org/variation/human/{rsid}?content-type=application/json",
+        "myvariant": f"https://myvariant.info/v1/query?q={rsid_q}&size=1",
+        "ensembl": (f"https://rest.ensembl.org/variation/human/{rsid_q}"
+                    "?content-type=application/json"),
         "gwas_catalog": ("https://www.ebi.ac.uk/gwas/rest/api/"
-                         f"singleNucleotidePolymorphisms/{rsid}/associations"),
+                         f"singleNucleotidePolymorphisms/{rsid_q}/associations"),
     }
     data = _http_get_json(urls[source])
     if data is not None:
