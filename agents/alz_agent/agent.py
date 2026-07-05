@@ -2,19 +2,18 @@
 
 The project folder name contains hyphens (not a valid Python identifier), so
 ADK cannot use it as an agent name. This thin package has a valid name and
-re-exports the existing `root_agent` from the project's top-level agent.py —
-no changes to the original files.
+re-exports the `root_agent` defined in agents/coordinator_agent.py.
 """
 import os
 import sys
 
-# Walk up from this file to find the project root (the dir holding the real
-# agent.py + stats_engine.py), then put it on sys.path so the original modules
-# import cleanly no matter where this package lives.
+# Walk up from this file to find the project root (the dir holding
+# requirements.txt), then put it on sys.path so `agents.*` and `tools.*` import
+# cleanly no matter where this package lives.
 _here = os.path.dirname(os.path.abspath(__file__))
 _root = _here
 while _root != os.path.dirname(_root):  # stop at filesystem root
-    if os.path.exists(os.path.join(_root, "stats_engine.py")):
+    if os.path.exists(os.path.join(_root, "requirements.txt")):
         break
     _root = os.path.dirname(_root)
 
@@ -30,6 +29,6 @@ try:
 except Exception:
     pass
 
-from agent import root_agent  # noqa: E402  (the project's top-level agent.py)
+from agents.coordinator_agent import root_agent  # noqa: E402
 
 __all__ = ["root_agent"]

@@ -23,15 +23,22 @@ and references are all traceable to tool output.
 
 ```
 .
-├── generate_synthetic_adni.py   # synthetic ADNI/OASIS style data generator
-├── synthetic_adni_style.csv     # demo dataset (synthetic, ADNI ready schema)
-├── DATA_DICTIONARY.md           # schema, units, calibration anchors, citations
-├── ingestion.py                 # load / validate / clean / group / annotate tools
-├── stats_engine.py              # group summaries, slopes, trajectories, adjusted effects, ranking, cards
-├── agent.py                     # ADK/Gemini agent + tools + guardrail + deterministic core
-├── evals.py                     # routing / safety / grounding / ranking eval harness
-├── eval_results.json            # latest eval scorecard (17/17)
-├── docs/architecture_diagram.*  # architecture diagram (PNG + SVG) and its render script
+├── main.py                          # entry point — runs the agent core on a question
+├── agents/
+│   ├── coordinator_agent.py         # ADK/Gemini agent + routing, guardrail & deterministic core
+│   └── alz_agent/                   # thin wrapper so `adk web` can discover the agent
+├── tools/
+│   ├── ingestion_tools.py           # load / validate / clean / group / annotate
+│   └── stats_tools.py               # summaries, slopes, trajectories, adjusted effects, ranking, cards
+├── data/
+│   ├── generate_synthetic_adni.py   # synthetic ADNI/OASIS style data generator
+│   ├── synthetic_adni_style.csv     # demo dataset (synthetic, ADNI ready schema)
+│   └── DATA_DICTIONARY.md           # schema, units, calibration anchors, citations
+├── evals/
+│   ├── evals.py                     # routing / safety / grounding / ranking harness
+│   └── eval_results.json            # latest eval scorecard (17/17)
+├── docs/
+│   └── architecture_diagram.png     # architecture diagram
 ├── requirements.txt
 └── .gitignore
 ```
@@ -47,20 +54,20 @@ pip install -r requirements.txt
 ## Quickstart
 
 ```bash
-# 1. (re)generate the synthetic dataset
-python generate_synthetic_adni.py --n 300 --seed 42 --out synthetic_adni_style.csv
+# 1. (re)generate the synthetic dataset (written to data/)
+python data/generate_synthetic_adni.py --n 300 --seed 42
 
 # 2. run the evaluation harness (no API key needed — scores the deterministic core)
-python evals.py
+python evals/evals.py
 
-# 3. try the deterministic agent core interactively
-python agent.py --csv synthetic_adni_style.csv
+# 3. ask the deterministic agent core a question (offline, no API key)
+python main.py "Do APOE e4 carriers show more amyloid?"
 ```
 
-To run the **Gemini** agent, install `google-adk`, set your Gemini credentials, then
-launch `adk web` (or `adk run`) pointed at `agent.py`'s `root_agent`. See the runner
-snippet in the `agent.py` docstring for driving it with a stable session so follow up
-questions keep context.
+To run the **Gemini** agent, install `google-adk`, put your Gemini credentials in a
+`.env` file at the project root, then launch `adk web agents` and pick **alz_agent** in
+the browser. The agent is defined in `agents/coordinator_agent.py` (`root_agent`); the
+`agents/alz_agent/` package is a thin wrapper that lets ADK discover it.
 
 ## How it maps to the course
 
@@ -79,7 +86,7 @@ The demo data is synthetic but matches an ADNI/OASIS style schema and is calibra
 literature consistent effect directions (APOE ε4 → higher amyloid, faster hippocampal
 decline; TREM2 R47H ≈ one ε4 allele). The pipeline is **ADNI/OASIS-3 ready**: point it at
 approved, access controlled real data with the same columns to run the real analysis.
-See `DATA_DICTIONARY.md`.
+See `data/DATA_DICTIONARY.md`.
 
 ## Limitations & ethics
 
@@ -90,4 +97,4 @@ refuses individual diagnosis, prognosis, treatment, and personal-risk questions.
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE.md file for details
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.

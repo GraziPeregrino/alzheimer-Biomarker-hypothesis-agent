@@ -34,13 +34,21 @@ Citations are drawn from a curated real set — nothing is LLM-generated.
 
 from __future__ import annotations
 
+import os as _os
+import sys as _sys
 from typing import Dict, List, Optional, Union
 
 import numpy as np
 import pandas as pd
 from scipy import stats
 
-from ingestion import group_by_genotype, AMYLOID_POSITIVITY_CENTILOID
+# Make the project root importable so `tools.*` resolves even when this file is
+# run directly (python tools/stats_tools.py).
+_ROOT = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
+if _ROOT not in _sys.path:
+    _sys.path.insert(0, _ROOT)
+
+from tools.ingestion_tools import group_by_genotype, AMYLOID_POSITIVITY_CENTILOID
 
 # statsmodels is required for the mixed-effects trajectory model. The module still
 # imports and runs (with a documented fallback) if it is missing.
@@ -680,8 +688,9 @@ def rank_biomarkers(df: pd.DataFrame, scheme: str = "e4_carrier") -> dict:
 
 
 if __name__ == "__main__":
-    from ingestion import load_dataset, clean_biomarkers
-    df, _ = clean_biomarkers(load_dataset("synthetic_adni_style.csv"))
+    from tools.ingestion_tools import load_dataset, clean_biomarkers
+    _csv = _os.path.join(_ROOT, "data", "synthetic_adni_style.csv")
+    df, _ = clean_biomarkers(load_dataset(_csv))
     for bm, sch in [("amyloid_centiloid", "e4_dose"),
                     ("hippocampal_volume", "e4_carrier"),
                     ("mmse", "e4_carrier"),

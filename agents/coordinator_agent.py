@@ -51,9 +51,17 @@ from typing import Dict, Optional
 
 import pandas as pd
 
-from ingestion import load_dataset, clean_biomarkers, validate_schema, describe_groups
-from stats_engine import (BIOMARKER_META, analyze, make_hypothesis_card,
-                          render_card_text, compute_group_summary, rank_biomarkers)
+# This module lives in agents/; ensure the project root is importable so the
+# `tools.*` packages resolve whether launched via main.py, evals, adk web, or
+# run directly.
+import sys as _sys
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _ROOT not in _sys.path:
+    _sys.path.insert(0, _ROOT)
+
+from tools.ingestion_tools import load_dataset, clean_biomarkers, validate_schema, describe_groups
+from tools.stats_tools import (BIOMARKER_META, analyze, make_hypothesis_card,
+                               render_card_text, compute_group_summary, rank_biomarkers)
 
 
 # --------------------------------------------------------------------------- #
@@ -106,17 +114,15 @@ DEFAULT_DATASET = "synthetic_adni_style.csv"
 
 def _resolve_csv(csv_path: str) -> str:
     """Return a usable path to the CSV. If it isn't found as given, fall back to
-    the bundled dataset next to this module — so the tool works regardless of the
-    process working directory or a made-up filename from the model."""
+    the bundled dataset under the project's data/ folder — so the tool works
+    regardless of the process working directory or a made-up filename."""
     if os.path.isfile(csv_path):
         return csv_path
-    here = os.path.dirname(os.path.abspath(__file__))
-    candidate = os.path.join(here, os.path.basename(csv_path))
-    if os.path.isfile(candidate):
-        return candidate
-    bundled = os.path.join(here, DEFAULT_DATASET)
-    if os.path.isfile(bundled):
-        return bundled
+    data_dir = os.path.join(_ROOT, "data")
+    for candidate in (os.path.join(data_dir, os.path.basename(csv_path)),
+                      os.path.join(data_dir, DEFAULT_DATASET)):
+        if os.path.isfile(candidate):
+            return candidate
     return csv_path  # let load_dataset raise a clear error
 
 

@@ -24,12 +24,20 @@ to evaluate the Gemini version in your notebook.
 from __future__ import annotations
 
 import json
+import os
 import re
+import sys
 from typing import List
 
-from agent import (HypothesisAgentCore, check_query_safety, rank_biomarkers_by_effect,
-                   _get_df)
-from stats_engine import CITATIONS, analyze
+# Make the project root importable so `agents.*` and `tools.*` resolve when this
+# harness is run as `python evals/evals.py`.
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _ROOT not in sys.path:
+    sys.path.insert(0, _ROOT)
+
+from agents.coordinator_agent import (HypothesisAgentCore, check_query_safety,
+                                      rank_biomarkers_by_effect, _get_df)
+from tools.stats_tools import CITATIONS, analyze
 
 CSV = "synthetic_adni_style.csv"
 
@@ -210,6 +218,7 @@ def print_scorecard(results: dict) -> None:
 if __name__ == "__main__":
     results = run_all()
     print_scorecard(results)
-    with open("eval_results.json", "w") as f:
+    out_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "eval_results.json")
+    with open(out_path, "w") as f:
         json.dump(results, f, indent=2)
-    print("\nWrote eval_results.json")
+    print(f"\nWrote {out_path}")

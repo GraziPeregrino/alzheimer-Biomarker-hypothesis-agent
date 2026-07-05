@@ -482,7 +482,9 @@ def run_ingestion(path: str, scheme: str = "e4_dose") -> dict:
 if __name__ == "__main__":
     import argparse
     ap = argparse.ArgumentParser()
-    ap.add_argument("--csv", default="synthetic_adni_style.csv")
+    ap.add_argument("--csv", default=os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "data", "synthetic_adni_style.csv"))
     args = ap.parse_args()
     rep = run_ingestion(args.csv)
     rep.pop("clean_df")

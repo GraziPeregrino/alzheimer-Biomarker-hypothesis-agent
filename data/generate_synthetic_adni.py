@@ -25,6 +25,8 @@ Cascade ordering (Jack et al. 2010 Lancet Neurol; Bateman et al. 2012 NEJM):
 Author: capstone build helper
 """
 
+import os
+
 import numpy as np
 import pandas as pd
 
@@ -229,7 +231,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate a synthetic ADNI-style dataset.")
     parser.add_argument("--n", type=int, default=CONFIG["n_subjects"], help="number of subjects")
     parser.add_argument("--seed", type=int, default=CONFIG["seed"], help="random seed")
-    parser.add_argument("--out", default="synthetic_adni_style.csv", help="output CSV path")
+    parser.add_argument("--out", default=os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "synthetic_adni_style.csv"),
+        help="output CSV path")
     args = parser.parse_args()
 
     config = dict(CONFIG, n_subjects=args.n, seed=args.seed)
