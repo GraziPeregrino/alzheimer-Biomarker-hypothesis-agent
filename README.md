@@ -1,11 +1,11 @@
 # Alzheimer's Biomarker Hypothesis Agent
 
-An agentic research workflow that turns subject-level Alzheimer's biomarker data into
-transparent, citation-backed, **hypothesis-generating** cards. Built on Google ADK +
+An agentic research workflow that turns subject level Alzheimer's biomarker data into
+transparent, citation backed, **hypothesis-generating** cards. Built on Google ADK +
 Gemini for the *AI Agents: Intensive Vibe Coding* capstone.
 
 > **Research / education tool — not for diagnosis or clinical use.** Every result is
-> observational and hypothesis-generating. The included dataset is **synthetic** (see
+> observational and hypothesis generating. The included dataset is **synthetic** (see
 > below); reported effects are built into the data generator by design, not evidence
 > about real biology.
 
@@ -13,7 +13,7 @@ Gemini for the *AI Agents: Intensive Vibe Coding* capstone.
 
 ## What it does
 
-A researcher asks a plain-language question (e.g. *"Do APOE ε4 carriers show higher
+A researcher asks a plain language question (e.g. *"Do APOE ε4 carriers show higher
 amyloid burden and faster hippocampal decline?"*). The agent screens the question for
 safety, inspects the dataset, selects one biomarker and one genotype scheme, runs the
 statistics, and returns a Hypothesis / Evidence / Caution / Citations card whose numbers
@@ -23,8 +23,8 @@ and references are all traceable to tool output.
 
 ```
 .
-├── generate_synthetic_adni.py   # synthetic ADNI/OASIS-style data generator
-├── synthetic_adni_style.csv     # demo dataset (synthetic, ADNI-ready schema)
+├── generate_synthetic_adni.py   # synthetic ADNI/OASIS style data generator
+├── synthetic_adni_style.csv     # demo dataset (synthetic, ADNI ready schema)
 ├── DATA_DICTIONARY.md           # schema, units, calibration anchors, citations
 ├── ingestion.py                 # load / validate / clean / group / annotate tools
 ├── stats_engine.py              # group summaries, slopes, trajectories, adjusted effects, ranking, cards
@@ -59,7 +59,7 @@ python agent.py --csv synthetic_adni_style.csv
 
 To run the **Gemini** agent, install `google-adk`, set your Gemini credentials, then
 launch `adk web` (or `adk run`) pointed at `agent.py`'s `root_agent`. See the runner
-snippet in the `agent.py` docstring for driving it with a stable session so follow-up
+snippet in the `agent.py` docstring for driving it with a stable session so follow up
 questions keep context.
 
 ## How it maps to the course
@@ -75,16 +75,16 @@ questions keep context.
 
 ## Data note
 
-The demo data is synthetic but matches an ADNI/OASIS-style schema and is calibrated to
-literature-consistent effect directions (APOE ε4 → higher amyloid, faster hippocampal
+The demo data is synthetic but matches an ADNI/OASIS style schema and is calibrated to
+literature consistent effect directions (APOE ε4 → higher amyloid, faster hippocampal
 decline; TREM2 R47H ≈ one ε4 allele). The pipeline is **ADNI/OASIS-3 ready**: point it at
-approved, access-controlled real data with the same columns to run the real analysis.
+approved, access controlled real data with the same columns to run the real analysis.
 See `DATA_DICTIONARY.md`.
 
 ## Limitations & ethics
 
 Observational associations only, no causal claims. Per-subject OLS slopes approximate a
-linear mixed-effects model (the confirmatory upgrade). Rare variants (TREM2) are
+linear mixed effects model (the confirmatory upgrade). Rare variants (TREM2) are
 underpowered. Citations come from a curated set so they are always verifiable. The agent
 refuses individual diagnosis, prognosis, treatment, and personal-risk questions.
 
