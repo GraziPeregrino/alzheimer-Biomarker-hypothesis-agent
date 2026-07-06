@@ -41,6 +41,8 @@ and references are all traceable to tool output.
 │   └── eval_results.json            # latest eval scorecard (17/17)
 ├── docs/
 │   └── architecture_diagram.png     # architecture diagram
+├── notebook/
+│   └── alzheimer_biomarker_agent.ipynb   # Kaggle-ready demo of the offline pipeline
 ├── requirements.txt
 └── .gitignore
 ```
