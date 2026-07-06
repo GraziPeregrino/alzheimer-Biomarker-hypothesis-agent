@@ -3,6 +3,7 @@ numpy>=1.26
 pandas>=2.0
 scipy>=1.11
 matplotlib>=3.7
+statsmodels>=0.14      # linear mixed-effects model for longitudinal trajectories
 
 # Fast on-disk dataset cache (agent store rehydration); pickle fallback if absent
 pyarrow>=14.0
